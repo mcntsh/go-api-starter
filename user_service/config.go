@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/spf13/viper"
 )
 
+// Config represents individual configuration definitions
+// derrived from the `config.json` file.
 type Config struct {
 	HTTPAddress string `mapstructure:"http_address"`
 	HTTPTimeout int    `mapstructure:"http_timeout"`
@@ -14,14 +17,14 @@ type Config struct {
 	DBPassword string `mapstructure:"db_password"`
 	DBAddress  string `mapstructure:"db_address"`
 	DBTable    string `mapstructure:"db_table"`
-	DBString   string
+	dBString   string
 
 	EncodingJWT string `mapstructure:"encoding_jwt"`
 }
 
 var config *Config
 
-func configLoad() error {
+func loadConfig() error {
 	config = &Config{}
 
 	viper.SetConfigName("config")
@@ -38,7 +41,7 @@ func configLoad() error {
 		return err
 	}
 
-	config.DBString = fmt.Sprintf("%s:%s@tcp(%s)/%s", config.DBUser, config.DBPassword, config.DBAddress, config.DBTable)
+	config.dBString = fmt.Sprintf("%s:%s@tcp(%s)/%s", config.DBUser, config.DBPassword, config.DBAddress, config.DBTable)
 
 	return nil
 }

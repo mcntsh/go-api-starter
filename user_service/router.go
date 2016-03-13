@@ -11,7 +11,7 @@ var (
 		middlewareLogging,
 		middlewareJSON,
 		middlewareCors,
-		middlewareMountModel,
+		middlewareMountUser,
 	)
 
 	authChain = defaultChain.Extend(
@@ -19,7 +19,7 @@ var (
 	)
 )
 
-func routerLoad() http.Handler {
+func loadRouter() http.Handler {
 	r := mux.NewRouter()
 
 	// REST Handlers

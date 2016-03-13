@@ -2,11 +2,14 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/gorilla/context"
 	"micro-services/api"
 	"net/http"
+
+	"github.com/gorilla/context"
 )
 
+/* Request body schema
+What router handlers expect for certain endpoints. */
 type registerUserBody struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -18,25 +21,25 @@ type authUserBody struct {
 }
 
 func handlerGetAuthenticatedUser(w http.ResponseWriter, r *http.Request) {
-	user := context.Get(r, "user").(*model)
+	u := context.Get(r, "user").(*User)
 
-	api.WriteResponse(w, &simpleUser{Id: user.Id, Email: user.Email})
+	api.WriteResponse(w, &SimpleUser{ID: u.ID, Email: u.Email})
 }
 
 func handlerRegisterUser(w http.ResponseWriter, r *http.Request) {
-	var request *registerUserBody
+	var body *registerUserBody
 
-	model := context.Get(r, "model").(*model)
+	u := context.Get(r, "user").(*User)
 
 	// Unmarshal the POST body into the body struct
-	err := json.NewDecoder(r.Body).Decode(&request)
+	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
 		api.WriteErrorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
 	// Create the new user
-	err = model.CreateUser(request.Email, request.Password)
+	err = u.CreateUser(body.Email, body.Password)
 	if err != nil {
 		api.WriteErrorResponse(w, r, http.StatusBadRequest, err)
 		return
@@ -47,31 +50,31 @@ func handlerRegisterUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func handlerAuthenticateUser(w http.ResponseWriter, r *http.Request) {
-	var request *authUserBody
+	var body *authUserBody
 
-	model := context.Get(r, "model").(*model)
+	u := context.Get(r, "user").(*User)
 
 	// Unmarshal the POST body into the body struct
-	err := json.NewDecoder(r.Body).Decode(&request)
+	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
 		api.WriteErrorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
 	// Authenticate the user
-	user, err := model.FindUserByEmailAndPassword(request.Email, request.Password)
+	u, err = u.FindUserByEmailAndPassword(body.Email, body.Password)
 	if err != nil {
 		api.WriteErrorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
 
 	// Generate the JWT
-	token, err := model.FindUserTokenById(user.Id)
+	t, err := u.FetchUserTokenByID(u.ID)
 	if err != nil {
 		api.WriteErrorResponse(w, r, http.StatusNoContent, err)
 		return
 	}
 
-	api.WriteResponse(w, token)
+	api.WriteResponse(w, t)
 	return
 }

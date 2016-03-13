@@ -10,7 +10,7 @@ import (
 func main() {
 	// Load in the config
 
-	err := configLoad()
+	err := loadConfig()
 	if err != nil {
 		logrus.Fatal(err)
 	}
@@ -22,7 +22,7 @@ func main() {
 		Timeout: httpTimeout,
 		Server: &http.Server{
 			Addr:    config.HTTPAddress,
-			Handler: routerLoad(),
+			Handler: loadRouter(),
 		},
 	}
 

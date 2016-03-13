@@ -1,12 +1,13 @@
 package main
 
 import (
+	"micro-services/api"
+	"net/http"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/context"
 	"github.com/rs/cors"
-	"micro-services/api"
-	"net/http"
 )
 
 type userRequestBody struct {
@@ -44,14 +45,14 @@ func middlewareJSON(h http.Handler) http.Handler {
 	})
 }
 
-func middlewareMountModel(h http.Handler) http.Handler {
+func middlewareMountUser(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		model, err := loadModel()
+		u, err := loadModel()
 		if err != nil {
 			api.WriteErrorResponse(w, r, http.StatusInternalServerError, err)
 		}
 
-		context.Set(r, "model", model)
+		context.Set(r, "user", u)
 		h.ServeHTTP(w, r)
 	})
 }
@@ -59,7 +60,7 @@ func middlewareMountModel(h http.Handler) http.Handler {
 func middlewareAuth(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Validate the token
-		token, err := jwt.ParseFromRequest(r, func(token *jwt.Token) (interface{}, error) {
+		t, err := jwt.ParseFromRequest(r, func(t *jwt.Token) (interface{}, error) {
 			return []byte(config.EncodingJWT), nil
 		})
 		if err != nil {
@@ -68,15 +69,15 @@ func middlewareAuth(h http.Handler) http.Handler {
 		}
 
 		// Fetch the user
-		model := context.Get(r, "model").(*model)
+		u := context.Get(r, "user").(*User)
 
-		user, err := model.FindUserById(int64(token.Claims["id"].(float64)))
+		u, err = u.FindUserByID(int64(t.Claims["id"].(float64)))
 		if err != nil {
 			api.WriteErrorResponse(w, r, http.StatusUnauthorized, err)
 			return
 		}
 
-		context.Set(r, "user", user)
+		context.Set(r, "user", u)
 
 		h.ServeHTTP(w, r)
 	})

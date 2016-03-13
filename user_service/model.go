@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+
 	"github.com/asaskevich/govalidator"
 	"github.com/dgrijalva/jwt-go"
 	_ "github.com/go-sql-driver/mysql"
@@ -10,44 +11,51 @@ import (
 )
 
 const (
-	INSERT_NEW_USER    = `INSERT INTO users (email, password) VALUES (:email, :password)`
-	FIND_USER_BY_EMAIL = `SELECT * FROM users WHERE email=?`
-	FIND_USER_BY_ID    = `SELECT * FROM users WHERE id=?`
+	// All database queries are pre-defined in this block
+
+	queryInsertNewUser   = `INSERT INTO users (email, password) VALUES (:email, :password)`
+	queryFindUserByEmail = `SELECT * FROM users WHERE email=?`
+	queryFindUserByID    = `SELECT * FROM users WHERE id=?`
 )
 
-type model struct {
-	db *sqlx.DB `json:"-"`
+// A User represents the database record of the user model.
+type User struct {
+	db *sqlx.DB
 
-	Id       int64  `db:"id"`
+	ID       int64  `db:"id"`
 	Email    string `db:"email"`
 	Password string `db:"password"`
 }
 
-type simpleUser struct {
-	Id    int64  `json:"id"`
+// A SimpleUser represents a simpler version of User without any of
+// the supperfluous database fields. Used for API responses.
+type SimpleUser struct {
+	ID    int64  `json:"id"`
 	Email string `json:"email"`
 }
 
-type token struct {
+// A Token is a [JSON Web Token](http://jwt.io) representation of a
+// User authenticated session.
+type Token struct {
 	Token string `json:"token"`
 }
 
-func (m *model) CreateUser(email, password string) error {
-	user := &model{}
-
-	user.Email = email
-	user.Password = password
+// CreateUser creates a new User record with an email and password,
+// and saves it to the database.
+func (u *User) CreateUser(email, password string) error {
+	u.Email = email
+	u.Password = password
 
 	// Validation
-	if govalidator.IsEmail(user.Email) != true {
+	if govalidator.IsEmail(u.Email) != true {
 		return errors.New("Invalid email address")
 	}
-	if govalidator.IsByteLength(user.Password, 8, 255) != true {
+	if govalidator.IsByteLength(u.Password, 8, 255) != true {
 		return errors.New("Password must be greater than 8 characters")
 	}
 
 	// Check if there's an existing user with this email
-	_, err := m.FindUserByEmail(user.Email)
+	_, err := u.FindUserByEmail(u.Email)
 	if err == nil {
 		return errors.New("A user with this email address has already been registered")
 	}
@@ -58,10 +66,10 @@ func (m *model) CreateUser(email, password string) error {
 		return err
 	}
 
-	user.Password = string(encryptedPass)
+	u.Password = string(encryptedPass)
 
 	// Insert into the DB
-	_, err = m.db.NamedExec(INSERT_NEW_USER, *user)
+	_, err = u.db.NamedExec(queryInsertNewUser, *u)
 	if err != nil {
 		return err
 	}
@@ -69,78 +77,82 @@ func (m *model) CreateUser(email, password string) error {
 	return err
 }
 
-func (m *model) FindUserById(id int64) (*model, error) {
-	user := &model{}
-
+// FindUserByID retrieves a User record from the database by its
+// index.
+func (u *User) FindUserByID(id int64) (*User, error) {
 	// Find user row
-	err := m.db.QueryRowx(FIND_USER_BY_ID, id).StructScan(user)
+	err := u.db.QueryRowx(queryFindUserByID, id).StructScan(u)
 	if err != nil {
 		return nil, errors.New("Could not find a user with the given ID")
 	}
 
-	return user, err
+	return u, err
 }
 
-func (m *model) FindUserTokenById(id int64) (*token, error) {
-	tok := &token{}
+// FetchUserTokenByID retrieves a user by it's primary key, and then
+// encodes it into a [JSON Web Token](http://jwt.io).
+func (u *User) FetchUserTokenByID(id int64) (*Token, error) {
+	t := &Token{}
 
-	user, err := m.FindUserById(id)
+	u, err := u.FindUserByID(id)
 	if err != nil {
 		return nil, err
 	}
 
-	t := jwt.New(jwt.SigningMethodHS256)
-	t.Claims["id"] = user.Id
-	t.Claims["email"] = user.Email
+	jt := jwt.New(jwt.SigningMethodHS256)
+	jt.Claims["id"] = u.ID
+	jt.Claims["email"] = u.Email
 
-	tok.Token, err = t.SignedString([]byte(config.EncodingJWT))
+	t.Token, err = jt.SignedString([]byte(config.EncodingJWT))
 	if err != nil {
 		return nil, errors.New("An error occured while trying to product a JSON Web Token")
 	}
 
-	return tok, err
+	return t, err
 }
 
-func (m *model) FindUserByEmail(email string) (*model, error) {
-	user := &model{}
-
+// FindUserByEmail queries the database for a User record by its
+// email/username.
+func (u *User) FindUserByEmail(email string) (*User, error) {
 	// Validation
 	if govalidator.IsEmail(email) != true {
 		return nil, errors.New("Invalid email address")
 	}
 
 	// Find user row
-	err := m.db.QueryRowx(FIND_USER_BY_EMAIL, email).StructScan(user)
+	err := u.db.QueryRowx(queryFindUserByEmail, email).StructScan(u)
 	if err != nil {
 		return nil, errors.New("Could not find a user with the given email address")
 	}
 
-	return user, err
+	return u, err
 }
 
-func (m *model) FindUserByEmailAndPassword(email, password string) (*model, error) {
-	user, err := m.FindUserByEmail(email)
+// FindUserByEmailAndPassword queries the database for a User
+// record by its username/password pair.
+func (u *User) FindUserByEmailAndPassword(email, password string) (*User, error) {
+	u, err := u.FindUserByEmail(email)
 	if err != nil {
 		return nil, err
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	err = bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
 	if err != nil {
 		return nil, errors.New("Invalid email/password combination")
 	}
 
-	return user, err
+	return u, err
 }
 
-func loadModel() (*model, error) {
+func loadModel() (*User, error) {
 	var err error
 
-	user := &model{}
+	u := &User{}
 
-	user.db, err = sqlx.Connect(config.DBDriver, config.DBString)
+	u.db, err = sqlx.Connect(config.DBDriver, config.dBString)
 	if err != nil {
 		return nil, err
 	}
 
-	return user, err
+	return u, err
 }
