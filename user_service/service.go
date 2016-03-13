@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/Sirupsen/logrus"
-	"github.com/tylerb/graceful"
 	"net/http"
 	"time"
+
+	"github.com/Sirupsen/logrus"
+	"github.com/tylerb/graceful"
 )
 
 func main() {
