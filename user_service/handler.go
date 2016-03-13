@@ -2,10 +2,10 @@ package main
 
 import (
 	"encoding/json"
-	"micro-services/api"
 	"net/http"
 
 	"github.com/gorilla/context"
+	"github.com/mcntsh/go-api"
 )
 
 /* Request body schema

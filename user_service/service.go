@@ -10,14 +10,12 @@ import (
 
 func main() {
 	// Load in the config
-
 	err := loadConfig()
 	if err != nil {
 		logrus.Fatal(err)
 	}
 
 	// Start the server
-
 	httpTimeout := time.Duration(config.HTTPTimeout) * time.Second
 	srv := &graceful.Server{
 		Timeout: httpTimeout,

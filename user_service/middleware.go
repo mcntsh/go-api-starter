@@ -1,12 +1,12 @@
 package main
 
 import (
-	"micro-services/api"
 	"net/http"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/context"
+	"github.com/mcntsh/go-api"
 	"github.com/rs/cors"
 )
 

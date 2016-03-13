@@ -2,20 +2,31 @@ package main
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/dgrijalva/jwt-go"
-	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/go-sql-driver/mysql" // MySQL Go driver
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/crypto/bcrypt"
 )
 
+// Database queries
 const (
-	// All database queries are pre-defined in this block
-
 	queryInsertNewUser   = `INSERT INTO users (email, password) VALUES (:email, :password)`
 	queryFindUserByEmail = `SELECT * FROM users WHERE email=?`
 	queryFindUserByID    = `SELECT * FROM users WHERE id=?`
+)
+
+// Error responses
+const (
+	errorInvalidEmail       = "Invalid email address"
+	errorEmailNotFound      = "Could not find a user with the given email address"
+	errorShortPassword      = "Password must be greater than %d characters"
+	errorExistingUser       = "A user with this email address has already been registered"
+	errorIDNotFound         = "Could not find a user with the given ID"
+	errorJWT                = "An error occured while trying to product a JSON Web Token"
+	errorInvalidCredentials = "Invalid email/password combination"
 )
 
 // A User represents the database record of the user model.
@@ -34,7 +45,7 @@ type SimpleUser struct {
 	Email string `json:"email"`
 }
 
-// A Token is a [JSON Web Token](http://jwt.io) representation of a
+// A Token is a <a href="http://jwt.io">JSON Web Token</a> representation of a
 // User authenticated session.
 type Token struct {
 	Token string `json:"token"`
@@ -48,16 +59,16 @@ func (u *User) CreateUser(email, password string) error {
 
 	// Validation
 	if govalidator.IsEmail(u.Email) != true {
-		return errors.New("Invalid email address")
+		return errors.New(errorInvalidEmail)
 	}
 	if govalidator.IsByteLength(u.Password, 8, 255) != true {
-		return errors.New("Password must be greater than 8 characters")
+		return fmt.Errorf(errorShortPassword, 8)
 	}
 
 	// Check if there's an existing user with this email
 	_, err := u.FindUserByEmail(u.Email)
 	if err == nil {
-		return errors.New("A user with this email address has already been registered")
+		return errors.New(errorExistingUser)
 	}
 
 	// Encode the user's password
@@ -83,14 +94,14 @@ func (u *User) FindUserByID(id int64) (*User, error) {
 	// Find user row
 	err := u.db.QueryRowx(queryFindUserByID, id).StructScan(u)
 	if err != nil {
-		return nil, errors.New("Could not find a user with the given ID")
+		return nil, errors.New(errorIDNotFound)
 	}
 
 	return u, err
 }
 
 // FetchUserTokenByID retrieves a user by it's primary key, and then
-// encodes it into a [JSON Web Token](http://jwt.io).
+// encodes it into a <a href="http://jwt.io">JSON Web Token</a>.
 func (u *User) FetchUserTokenByID(id int64) (*Token, error) {
 	t := &Token{}
 
@@ -105,7 +116,7 @@ func (u *User) FetchUserTokenByID(id int64) (*Token, error) {
 
 	t.Token, err = jt.SignedString([]byte(config.EncodingJWT))
 	if err != nil {
-		return nil, errors.New("An error occured while trying to product a JSON Web Token")
+		return nil, errors.New(errorJWT)
 	}
 
 	return t, err
@@ -116,13 +127,13 @@ func (u *User) FetchUserTokenByID(id int64) (*Token, error) {
 func (u *User) FindUserByEmail(email string) (*User, error) {
 	// Validation
 	if govalidator.IsEmail(email) != true {
-		return nil, errors.New("Invalid email address")
+		return nil, errors.New(errorInvalidEmail)
 	}
 
 	// Find user row
 	err := u.db.QueryRowx(queryFindUserByEmail, email).StructScan(u)
 	if err != nil {
-		return nil, errors.New("Could not find a user with the given email address")
+		return nil, errors.New(errorEmailNotFound)
 	}
 
 	return u, err
@@ -138,7 +149,7 @@ func (u *User) FindUserByEmailAndPassword(email, password string) (*User, error)
 
 	err = bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
 	if err != nil {
-		return nil, errors.New("Invalid email/password combination")
+		return nil, errors.New(errorInvalidCredentials)
 	}
 
 	return u, err
