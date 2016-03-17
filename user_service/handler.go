@@ -1,4 +1,4 @@
-package main
+package userserv
 
 import (
 	"encoding/json"

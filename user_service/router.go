@@ -1,8 +1,6 @@
-package main
+package userserv
 
 import (
-	"net/http"
-
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 )
@@ -20,17 +18,16 @@ var (
 	)
 )
 
-func loadRouter() http.Handler {
-	r := mux.NewRouter()
+// LoadRouter creates a new gorilla sub-router and defines
+// the service endpoints and their handlers.
+func (s *Service) LoadRouter(path string, r *mux.Router) {
+	sr := r.PathPrefix(path).Subrouter()
 
 	// REST Handlers
-	r.Methods("POST").Path("/users").Handler(defaultChain.ThenFunc(handlerRegisterUser))
+	sr.Methods("POST").Path("/").Handler(defaultChain.ThenFunc(handlerRegisterUser))
 
-	r.Methods("POST").Path("/users/auth").Handler(defaultChain.ThenFunc(handlerAuthenticateUser))
-	r.Methods("GET").Path("/users/auth").Handler(authChain.ThenFunc(handlerGetAuthenticatedUser))
+	sr.Methods("POST").Path("/auth").Handler(defaultChain.ThenFunc(handlerAuthenticateUser))
+	sr.Methods("GET").Path("/auth").Handler(authChain.ThenFunc(handlerGetAuthenticatedUser))
 
-	// Catch-all Handler
-	r.PathPrefix("/").Handler(http.DefaultServeMux)
-
-	return r
+	return
 }

@@ -1,4 +1,4 @@
-package main
+package userserv
 
 import (
 	"net/http"
@@ -61,7 +61,7 @@ func middlewareAuth(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Validate the token
 		t, err := jwt.ParseFromRequest(r, func(t *jwt.Token) (interface{}, error) {
-			return []byte(config.EncodingJWT), nil
+			return []byte(serv.Config.EncodingJWT), nil
 		})
 		if err != nil {
 			api.WriteErrorResponse(w, r, http.StatusUnauthorized, err)
