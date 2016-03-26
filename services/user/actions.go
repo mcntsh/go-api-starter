@@ -1,10 +1,9 @@
-package userserv
+package user
 
 import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/gorilla/context"
 	"github.com/mcntsh/go-api"
 )
 
@@ -20,19 +19,27 @@ type authUserBody struct {
 	Password string `json:"password"`
 }
 
-func handlerGetAuthenticatedUser(w http.ResponseWriter, r *http.Request) {
-	u := context.Get(r, "user").(*User)
+func ActionGetAuthenticatedUser(w http.ResponseWriter, r *http.Request) {
+	u, err := helperFetchAuthed(r)
+	if err != nil {
+		api.WriteErrorResponse(w, r, http.StatusUnauthorized, err)
+		return
+	}
 
 	api.WriteResponse(w, &SimpleUser{ID: u.ID, Email: u.Email})
 }
 
-func handlerRegisterUser(w http.ResponseWriter, r *http.Request) {
+func ActionRegisterUser(w http.ResponseWriter, r *http.Request) {
 	var body *registerUserBody
 
-	u := context.Get(r, "user").(*User)
+	u, err := LoadModel()
+	if err != nil {
+		api.WriteErrorResponse(w, r, http.StatusUnauthorized, err)
+		return
+	}
 
 	// Unmarshal the POST body into the body struct
-	err := json.NewDecoder(r.Body).Decode(&body)
+	err = json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
 		api.WriteErrorResponse(w, r, http.StatusInternalServerError, err)
 		return
@@ -49,13 +56,16 @@ func handlerRegisterUser(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func handlerAuthenticateUser(w http.ResponseWriter, r *http.Request) {
+func ActionAuthenticateUser(w http.ResponseWriter, r *http.Request) {
 	var body *authUserBody
 
-	u := context.Get(r, "user").(*User)
+	u, err := LoadModel()
+	if err != nil {
+		api.WriteErrorResponse(w, r, http.StatusUnauthorized, err)
+	}
 
 	// Unmarshal the POST body into the body struct
-	err := json.NewDecoder(r.Body).Decode(&body)
+	err = json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
 		api.WriteErrorResponse(w, r, http.StatusInternalServerError, err)
 		return

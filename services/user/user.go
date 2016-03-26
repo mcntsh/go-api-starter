@@ -1,4 +1,4 @@
-package userserv
+package user
 
 import (
 	"errors"
@@ -114,7 +114,7 @@ func (u *User) FetchUserTokenByID(id int64) (*Token, error) {
 	jt.Claims["id"] = u.ID
 	jt.Claims["email"] = u.Email
 
-	t.Token, err = jt.SignedString([]byte(serv.Config.EncodingJWT))
+	t.Token, err = jt.SignedString([]byte(config.EncodingJWT))
 	if err != nil {
 		return nil, errors.New(errorJWT)
 	}
@@ -155,15 +155,19 @@ func (u *User) FindUserByEmailAndPassword(email, password string) (*User, error)
 	return u, err
 }
 
-func loadModel() (*User, error) {
+func LoadModel() (*User, error) {
 	var err error
 
 	u := &User{}
 
-	u.db, err = sqlx.Connect(serv.Config.DBDriver, serv.Config.dBString)
+	u.db, err = sqlx.Connect(config.DBDriver, config.dbString)
 	if err != nil {
 		return nil, err
 	}
 
 	return u, err
+}
+
+func init() {
+	config.LoadJSON()
 }
