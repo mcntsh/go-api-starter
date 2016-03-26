@@ -32,9 +32,9 @@ func ActionGetAuthenticatedUser(w http.ResponseWriter, r *http.Request) {
 func ActionRegisterUser(w http.ResponseWriter, r *http.Request) {
 	var body *registerUserBody
 
-	u, err := LoadModel()
+	u, err := LoadUser()
 	if err != nil {
-		api.WriteErrorResponse(w, r, http.StatusUnauthorized, err)
+		api.WriteErrorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -59,7 +59,7 @@ func ActionRegisterUser(w http.ResponseWriter, r *http.Request) {
 func ActionAuthenticateUser(w http.ResponseWriter, r *http.Request) {
 	var body *authUserBody
 
-	u, err := LoadModel()
+	u, err := LoadUser()
 	if err != nil {
 		api.WriteErrorResponse(w, r, http.StatusUnauthorized, err)
 	}

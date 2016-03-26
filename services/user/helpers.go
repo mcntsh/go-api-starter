@@ -16,7 +16,7 @@ func helperFetchAuthed(r *http.Request) (*User, error) {
 	}
 
 	// Fetch the user
-	u, err := LoadModel()
+	u, err := LoadUser()
 	if err != nil {
 		return nil, err
 	}

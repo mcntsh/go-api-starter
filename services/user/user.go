@@ -155,7 +155,7 @@ func (u *User) FindUserByEmailAndPassword(email, password string) (*User, error)
 	return u, err
 }
 
-func LoadModel() (*User, error) {
+func LoadUser() (*User, error) {
 	var err error
 
 	u := &User{}
