@@ -62,6 +62,7 @@ func ActionAuthenticateUser(w http.ResponseWriter, r *http.Request) {
 	u, err := LoadUser()
 	if err != nil {
 		api.WriteErrorResponse(w, r, http.StatusUnauthorized, err)
+		return
 	}
 
 	// Unmarshal the POST body into the body struct
